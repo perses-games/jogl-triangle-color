@@ -23,19 +23,17 @@ public class Renderer implements GLEventListener  {
     private final GLWindow glWindow;
 
     private float[]                 vertices = {
-            -0.5f, -0.5f, 0.0f,
-             0.5f, -0.5f, 0.0f,
-             0.0f,  0.5f, 0.0f,
-
-            -1.0f, -1.0f, 0.0f,
-            1.0f,  1.0f, 0.0f,
-            -1.0f,  1.0f, 0.0f,
+            -0.5f, -0.5f,
+             1.0f,  0.0f, 0.0f, 0.0f,
+             0.5f, -0.5f,
+             0.0f,  1.0f, 0.0f, 0.0f,
+             0.0f,  0.5f,
+             0.0f,  0.0f, 1.0f, 0.0f,
     };
 
     private FloatBuffer             fbVertices          = Buffers.newDirectFloatBuffer(vertices);
 
-    int[]                           vboHandles;
-    private int                     vboVertices;
+    private int vboHandle;
 
     public Renderer(GLWindow glWindow) {
         this.glWindow = glWindow;
@@ -86,15 +84,25 @@ public class Renderer implements GLEventListener  {
 
         shaderProgram = new ShaderProgram(gl, Util.loadAsText(getClass(), "simpleShader.vert"), Util.loadAsText(getClass(), "simpleShader.frag"));
 
-        vboHandles = new int[1];
+        int [] vboHandles = new int[1];
         gl.glGenBuffers(1, vboHandles, 0);
 
-        vboVertices = vboHandles[0];
+        vboHandle = vboHandles[0];
+
+        // Select the VBO, GPU memory data, to use for vertices
+        gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, vboHandle);
+
+        // transfer data to VBO, this perform the copy of data from CPU -> GPU memory
+        gl.glBufferData(GL.GL_ARRAY_BUFFER, fbVertices.limit() * 4, fbVertices, GL.GL_STATIC_DRAW);
     }
 
     @Override
     public void dispose(GLAutoDrawable drawable) {
+        GL2ES2 gl = drawable.getGL().getGL2ES2();
 
+        gl.glDeleteBuffers(1, new int [] { vboHandle }, 0);
+
+        shaderProgram.dispose();
     }
 
     @Override
@@ -104,28 +112,29 @@ public class Renderer implements GLEventListener  {
         GL2ES2 gl = drawable.getGL().getGL2ES2();
 
         // Clear screen
-        gl.glClearColor(0.5f, 0, 0.5f, 1f);
+        gl.glClearColor(0.2f, 0, 0.2f, 1f);
         gl.glClear(GL2ES2.GL_COLOR_BUFFER_BIT);
 
         shaderProgram.begin();
 
-        // Select the VBO, GPU memory data, to use for vertices
-        gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, vboVertices);
-
-        // transfer data to VBO, this perform the copy of data from CPU -> GPU memory
-        int numBytes = vertices.length * 4;
-        gl.glBufferData(GL.GL_ARRAY_BUFFER, numBytes, fbVertices, GL.GL_STATIC_DRAW);
+        gl.glEnableVertexAttribArray(0);
+        gl.glEnableVertexAttribArray(1);
 
         // Associate Vertex attribute 0 with the last bound VBO
-        gl.glVertexAttribPointer(0 /* the vertex attribute */, 3,
-                GL2ES2.GL_FLOAT, false /* normalized? */, 0 /* stride */,
+        gl.glVertexAttribPointer(0 /* the vertex attribute */, 2,
+                GL2ES2.GL_FLOAT, false /* normalized? */, 24 /* stride */,
                 0 /* The bound VBO data offset */);
 
-        gl.glEnableVertexAttribArray(0);
+        // Associate Vertex attribute 0 with the last bound VBO
+        gl.glVertexAttribPointer(1 /* the vertex attribute */, 4,
+                GL2ES2.GL_FLOAT, false /* normalized? */, 24 /* stride */,
+                8 /* The bound VBO data offset */);
+
 
         gl.glDrawArrays(GL2ES2.GL_TRIANGLES, 0, 3); //Draw the vertices as triangle
 
         gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
+        gl.glDisableVertexAttribArray(1); // Allow release of vertex position memory
 
         shaderProgram.end();
     }

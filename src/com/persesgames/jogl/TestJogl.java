@@ -27,7 +27,7 @@ public class TestJogl {
 
         glWindow.setTitle("jogl-triangle-color");
 
-        glWindow.setSize(800, 600);
+        glWindow.setSize(800, 800);
 
         glWindow.setFullscreen(false);
         glWindow.setUndecorated(false);
